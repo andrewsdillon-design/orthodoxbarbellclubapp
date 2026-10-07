@@ -33,6 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     backgroundColor: PURPLE_DARK,
     ios: {
       bundleIdentifier: 'com.orthodoxbarbellclub.app',
+      appleTeamId: 'GA9A5J9A44', // Dillon REA Andrews (Individual)
       supportsTablet: false,
       infoPlist: {
         CFBundleDisplayName: 'OBC',

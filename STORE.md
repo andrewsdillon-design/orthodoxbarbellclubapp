@@ -37,8 +37,8 @@ EAS can pick the wrong one. To make sure OBC goes to **your** team:
       Account Holder is you, and copy the **Team ID** (10 characters).
 - [ ] Your team is **Dillon REA Andrews (Individual)**. Whenever EAS lists Apple teams, pick that one, never
       Ron Seitz's team.
-- [ ] Open `build_ios.bat` in Notepad and put the Team ID on the `set APPLE_TEAM_ID=` line (and fix
-      `APPLE_ID` if you enrolled with a different Apple ID). EAS then signs in as you and uses that team.
+- [x] Team ID **GA9A5J9A44** is set in `build_ios.bat` and `app.config.ts`, so EAS uses only your team.
+      (Fix `APPLE_ID` in `build_ios.bat` if you enrolled with an Apple ID other than dillonleon@me.com.)
 - [ ] When `eas init` asks which **Expo** account owns the project, pick your personal account, not
       another organization's.
 - [ ] If an earlier Apple sign-in for someone else's team is cached, EAS shows it ("Logged in as …"). Delete
