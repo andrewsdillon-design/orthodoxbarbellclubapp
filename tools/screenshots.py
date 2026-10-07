@@ -35,7 +35,7 @@ SHOTS = [  # (file name, route, text that shows the screen has loaded, tab to ta
     ("02-program", "/program", "Phase calendar", None),
     ("03-progress", "/progress", "Current training maxes", None),
     ("04-body", "/body", "Body weight", None),
-    ("05-club", "/club", "Club leaderboard", "Leaderboard"),
+    ("05-club", "/club", "Club leaderboard", "Board"),
 ]
 DEVICES = {  # name: (css width, css height, scale)
     "ios-6.9": (440, 956, 3),
