@@ -10,7 +10,7 @@ rem Build with YOUR Apple developer team, never someone else's (e.g. a team you'
 rem APPLE_ID is the Apple ID you enrolled with. APPLE_TEAM_ID is the 10-character Team ID from
 rem https://developer.apple.com/account -> Membership details. Leave it blank and EAS asks you to pick.
 rem Your team is "Dillon REA Andrews (Individual)" - if EAS asks, pick that one, not Ron Seitz's.
-set APPLE_ID=dillonleon@me.com
+set APPLE_ID=andrews.dillon@gmail.com
 set APPLE_TEAM_ID=GA9A5J9A44
 set EXPO_APPLE_ID=%APPLE_ID%
 if not "%APPLE_TEAM_ID%"=="" set EXPO_APPLE_TEAM_ID=%APPLE_TEAM_ID%

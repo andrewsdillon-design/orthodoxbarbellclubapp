@@ -7,7 +7,7 @@ const PURPLE = '#4A1942';
 const PURPLE_DARK = '#2E0C28';
 
 // Paste the ID `eas init` prints here (one time). It links this app to your Expo account for EAS builds.
-const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID || '';
+const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID || 'ba2647d7-14a7-4929-9655-bfad3af42af0';
 
 /** Android launchers show the app_name string under the icon; keep it short there, as on iOS. */
 const withShortLauncherName: ConfigPlugin<string> = (config, label) =>
