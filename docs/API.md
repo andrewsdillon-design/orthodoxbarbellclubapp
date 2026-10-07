@@ -137,3 +137,42 @@ The latest body weight also updates `User.bodyweight_kg`, which the leaderboard 
 |---|---|---|
 | GET | `/clubs/{slug}` | `{"slug", "name", "parish", "city", "state", "schedule", "about", "url", "my_role", "announcements": [{"body", "author", "created_at"}], "members": [{"name", "role"}]}` (announcements and members only for members and admins) |
 | GET | `/clubs/{slug}/leaderboard` | `{"boards": {"total"\|"squat"\|"bench"\|"deadlift": [{"rank", "name", "weight_class", "bodyweight_kg", "total_kg", "dots", "lifts_kg": {"squat": 180.0}}]}, "team_total_kg", "team_size"}`: verified lifts from the last 12 months, ranked by DOTS |
+
+## Club leaders (founder, leaders, and admins who oversee the club)
+
+`User.clubs[].can_lead` and `GET /clubs/{slug}` → `can_lead` say whether to show the leader section.
+Everything here answers `403` for anyone else. The website enforces the same rules (`obc/leadership.py`).
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| GET | `/clubs/{slug}/manage` | – | `{"slug", "name", "requests": [{"id", "name", "requested_at"}], "members": [{"id", "name", "role", "is_me", "program"}], "invites": [Invite], "pending_lifts"}` |
+| POST | `/clubs/{slug}/members/{id}` | `{"action": "approve"\|"deny"\|"make_leader"\|"make_member"\|"remove"}` | `{"ok", "message"}`. `id` is the membership id from `/manage` |
+| GET | `/clubs/{slug}/invites` | – | `{"invites": [Invite]}` (usable ones only) |
+| POST | `/clubs/{slug}/invites` | `{"days"?: 1-365, "uses"?: 1-1000}` (blank = never expires / unlimited) | `Invite`. Share `url` with the iOS/Android share sheet |
+| DELETE | `/clubs/{slug}/invites/{id}` | – | `{"ok": true}` (revokes the link) |
+| POST | `/clubs/{slug}/announcements` | `{"body"}` | `{"id", "body", "author", "created_at"}` |
+| DELETE | `/clubs/{slug}/announcements/{id}` | – | `{"ok": true}` |
+| GET | `/clubs/{slug}/lifts?status=pending\|reviewed` | – | `{"lifts": [Lift]}` |
+| POST | `/lifts/{id}/review` | `{"action": "verify"\|"reject", "note"}` (a note is required to reject) | `{"ok", "message", "lift": Lift}` |
+
+`Invite`: `{"id", "code", "url", "created_at", "created_by", "expires_at", "max_uses", "uses", "usable"}`
+
+`Lift`: a leaderboard result plus `{"lifter", "lift_name", "embed_url" (YouTube embed or null), "submitted_at",
+"review_note", "reviewer", "can_review"}`. Nobody can review their own lift (`can_review` is false); show the
+video (`embed_url` in a WebView, else open `video_url`) before the Verify/Reject buttons.
+
+Member rules: only an admin can change or remove a founder; a founder can't remove themselves; leaders can
+approve and deny requests, promote members to leader, demote leaders and remove members.
+
+## Site and regional admins (`User.is_staff`)
+
+Regional admins see only the clubs and applications in their regions; site admins see everything.
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| GET | `/admin/summary` | – | `{"pending_applications", "pending_lifts", "regions": [...], "clubs": [{"slug", "name", "city", "state", "kind", "active", "members"}]}` |
+| GET | `/admin/applications` | – | `{"applications": [{"id", "club_name", "slug", "parish", "city", "state", "region", "schedule", "about", "equipment": [...], "status", "applicant": {"name", "email"}, "submitted_at"}]}` |
+| POST | `/admin/applications/{id}` | `{"action": "approve", "slug"?, "note"?}` or `{"action": "reject", "note"}` | `{"ok", "message", "club"?: {"slug", "url"}}` |
+| GET | `/admin/lifts` | – | `{"lifts": [Lift]}` pending lifts across the admin's clubs; review with `POST /lifts/{id}/review` |
+
+Admins manage any club they oversee with the club-leader endpoints above, member or not.

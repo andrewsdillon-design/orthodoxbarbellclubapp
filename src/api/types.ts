@@ -10,6 +10,8 @@ export interface ClubRef {
   role: string;
   kind: string;
   url: string;
+  /** Founder, leader, or an admin who oversees the club: show the Lead view. */
+  can_lead?: boolean;
 }
 
 export interface User {
@@ -19,6 +21,8 @@ export interface User {
   units: Units;
   sex: 'M' | 'F' | string;
   role: string;
+  /** Site or regional admin: show the Admin screen. */
+  is_staff?: boolean;
   bodyweight_kg: number | null;
   clubs: ClubRef[];
 }
@@ -223,6 +227,7 @@ export interface SubmitMaxBody {
 }
 
 export interface Announcement {
+  id?: number;
   body: string;
   author: string;
   created_at: string;
@@ -238,6 +243,7 @@ export interface Club {
   about: string;
   url: string;
   my_role: string | null;
+  can_lead?: boolean;
   announcements: Announcement[];
   members: { name: string; role: string }[];
 }
@@ -263,4 +269,97 @@ export interface Leaderboard {
 export interface ApiErrorBody {
   error: string;
   problems?: string[];
+}
+
+// ----- Club leaders --------------------------------------------------------------------------------
+
+export type MemberAction = 'approve' | 'deny' | 'make_leader' | 'make_member' | 'remove';
+
+export interface JoinRequest {
+  id: number;
+  name: string;
+  requested_at: string;
+}
+
+export interface ManagedMember {
+  /** The membership id, used in /clubs/{slug}/members/{id}. */
+  id: number;
+  name: string;
+  role: 'founder' | 'leader' | 'member' | string;
+  is_me: boolean;
+  program: string | null;
+}
+
+export interface Invite {
+  id: number;
+  code: string;
+  url: string;
+  created_at: string;
+  created_by: string;
+  expires_at: string | null;
+  max_uses: number | null;
+  uses: number;
+  usable: boolean;
+}
+
+export interface ManageView {
+  slug: string;
+  name: string;
+  requests: JoinRequest[];
+  members: ManagedMember[];
+  invites: Invite[];
+  pending_lifts: number;
+}
+
+export interface LeaderLift extends MaxResult {
+  lifter: string;
+  lift_name: string;
+  /** A YouTube embed link, or null: then open video_url. */
+  embed_url: string | null;
+  submitted_at: string;
+  review_note: string;
+  reviewer: string | null;
+  /** False on your own lift: nobody reviews their own. */
+  can_review: boolean;
+}
+
+export interface ActionResult {
+  ok: boolean;
+  message: string;
+}
+
+// ----- Site and regional admins ------------------------------------------------------------------
+
+export interface AdminClub {
+  slug: string;
+  name: string;
+  city: string;
+  state: string;
+  kind: string;
+  active: boolean;
+  members: number;
+}
+
+export interface AdminSummary {
+  pending_applications: number;
+  pending_lifts: number;
+  regions: string[];
+  clubs: AdminClub[];
+}
+
+export interface ClubApplication {
+  id: number;
+  club_name: string;
+  slug: string;
+  parish: string;
+  city: string;
+  state: string;
+  region: string | null;
+  schedule: string;
+  about: string;
+  equipment: string[];
+  status: string;
+  applicant: { name: string; email: string };
+  submitted_at: string;
+  review_note?: string;
 }

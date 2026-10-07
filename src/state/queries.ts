@@ -17,6 +17,9 @@ export const keys = {
   maxes: ['maxes'] as const,
   club: (slug: string) => ['club', slug] as const,
   leaderboard: (slug: string) => ['leaderboard', slug] as const,
+  manage: (slug: string) => ['manage', slug] as const,
+  clubLifts: (slug: string, status: string) => ['clubLifts', slug, status] as const,
+  admin: ['admin'] as const,
 };
 
 export const useMe = () => useQuery({ queryKey: keys.me, queryFn: api.me });
@@ -68,3 +71,24 @@ export const useClub = (slug: string | null) =>
   useQuery({ queryKey: keys.club(slug ?? ''), queryFn: () => api.club(slug as string), enabled: !!slug });
 export const useLeaderboard = (slug: string | null) =>
   useQuery({ queryKey: keys.leaderboard(slug ?? ''), queryFn: () => api.leaderboard(slug as string), enabled: !!slug });
+
+// Club leaders and admins
+export const useManage = (slug: string | null, enabled = true) =>
+  useQuery({ queryKey: keys.manage(slug ?? ''), queryFn: () => api.manage(slug as string), enabled: !!slug && enabled });
+export const useClubLifts = (slug: string | null, status: 'pending' | 'reviewed' = 'pending', enabled = true) =>
+  useQuery({
+    queryKey: keys.clubLifts(slug ?? '', status),
+    queryFn: () => api.clubLifts(slug as string, status),
+    enabled: !!slug && enabled,
+  });
+export const useAdminSummary = (enabled = true) =>
+  useQuery({ queryKey: [...keys.admin, 'summary'], queryFn: api.adminSummary, enabled });
+export const useAdminApplications = (enabled = true) =>
+  useQuery({ queryKey: [...keys.admin, 'applications'], queryFn: api.adminApplications, enabled });
+export const useAdminLifts = (enabled = true) =>
+  useQuery({ queryKey: [...keys.admin, 'lifts'], queryFn: api.adminLifts, enabled });
+
+/** After any leader or admin action: refresh everything it could have changed. */
+export function leaderKeysToRefresh(): readonly (readonly unknown[])[] {
+  return [['manage'], ['club'], ['clubLifts'], keys.admin, keys.maxes, ['leaderboard'], keys.me];
+}

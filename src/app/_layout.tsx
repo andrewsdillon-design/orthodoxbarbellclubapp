@@ -53,6 +53,8 @@ function AppStack() {
           <Stack.Screen name="enroll" options={{ title: 'Choose a program', presentation: 'modal' }} />
           <Stack.Screen name="submit-max" options={{ title: 'Submit a max', presentation: 'modal' }} />
           <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+          <Stack.Screen name="admin" options={{ title: 'Admin' }} />
+          <Stack.Screen name="lead/[slug]" options={{ title: 'Lead' }} />
         </Stack.Protected>
         <Stack.Protected guard={status === 'signedOut'}>
           <Stack.Screen name="login" options={{ headerShown: false }} />

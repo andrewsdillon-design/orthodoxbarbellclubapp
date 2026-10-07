@@ -40,6 +40,41 @@ def tidy(value):
     return value
 
 
+def leader_samples(slug: str, send) -> None:
+    """Something for the leader and admin screens to show: a join request, lifts waiting to be verified,
+    an invite link, and a club application. The sample lifter becomes a site admin."""
+    from obc.extensions import db
+    from obc.models import (ADMIN, PENDING, Club, ClubApplication, LiftResult, Membership, Region, User,
+                            utcnow)
+    from obc.units import lb_to_kg
+
+    club = Club.query.filter_by(slug=slug).one()
+    me = User.query.filter_by(email=EMAIL).one()
+    me.role = ADMIN
+    for name, email in (("Basil", "basil@demo.test"), ("Fr. Seraphim", "seraphim@demo.test")):
+        u = User(name=name, email=email, birth_date=date(1990, 5, 5), sex="M", waiver_accepted_at=utcnow())
+        u.set_password("demo-password")
+        db.session.add(u)
+    db.session.flush()
+    basil = User.query.filter_by(email="basil@demo.test").one()
+    db.session.add(Membership(user_id=basil.id, club_id=club.id, status=PENDING))
+    ivan = User.query.filter_by(name="Ivan").first()
+    if ivan:
+        db.session.add(LiftResult(user_id=ivan.id, club_id=club.id, lift="squat", weight_kg=lb_to_kg(425),
+                                  bodyweight_kg=lb_to_kg(197), performed_on=date.today() - timedelta(days=2),
+                                  video_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ", status=PENDING))
+    seraphim = User.query.filter_by(email="seraphim@demo.test").one()
+    region = Region.query.filter_by(name="South Central").first()
+    db.session.add(ClubApplication(
+        applicant_id=seraphim.id, club_name="St. Herman Barbell Club", slug="stherman", parish="St. Herman of Alaska",
+        city="Dallas", state="TX", region_id=region.id if region else None, schedule="Mon, Wed, Fri 5:30 am",
+        about="Six men from the parish with a garage gym two blocks from the church.",
+        equipment=json.dumps(["Power rack", "Olympic barbell", "Bumper plates", "Flat bench", "Chalk"])))
+    db.session.commit()
+    send("POST", f"/clubs/{slug}/invites", {"days": 30, "uses": 10})
+    send("POST", f"/clubs/{slug}/announcements", {"body": "Test week starts Monday. Film your top singles."})
+
+
 def first_number(reps: str) -> int:
     m = re.match(r"\d+", reps or "")
     return int(m.group()) if m else 5
@@ -114,6 +149,9 @@ def main() -> None:
                                 "performed_on": (start - timedelta(days=3)).isoformat(),
                                 "video_url": "https://youtu.be/dQw4w9WgXcQ"})
 
+        slug = get("/me")["clubs"][0]["slug"]
+        leader_samples(slug, send)
+
         me = get("/me")
         enrollment = get("/enrollment")
         program = enrollment["program"]
@@ -125,7 +163,6 @@ def main() -> None:
                     sessions[f"{week}/{day}"] = r.get_json()
         progress = get("/progress")
         lifts = sorted({b["exercise"] for b in progress["best_e1rm"]})
-        slug = me["clubs"][0]["slug"]
         fixtures = {
             "_note": "Recorded from the Flask API by tools/record_fixtures.py. Don't edit by hand.",
             "recorded_on": date.today().isoformat(),
@@ -141,8 +178,15 @@ def main() -> None:
             "maxes": get("/maxes"),
             "clubs": {slug: get(f"/clubs/{slug}")},
             "leaderboards": {slug: get(f"/clubs/{slug}/leaderboard")},
+            # Leader and admin views (the sample lifter is the club's founder and a site admin)
+            "manage": {slug: get(f"/clubs/{slug}/manage")},
+            "club_lifts": {slug: {"pending": get(f"/clubs/{slug}/lifts?status=pending")["lifts"],
+                                  "reviewed": get(f"/clubs/{slug}/lifts?status=reviewed")["lifts"]}},
+            "admin_summary": get("/admin/summary"),
+            "admin_applications": get("/admin/applications"),
+            "admin_lifts": get("/admin/lifts"),
         }
-    text = json.dumps(tidy(fixtures), separators=(",", ":")).replace("http://localhost:5000/c/", SITE + "/c/")
+    text = json.dumps(tidy(fixtures), separators=(",", ":")).replace("http://localhost:5000/", SITE + "/")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
     print(f"wrote {OUT.relative_to(MOBILE)} ({OUT.stat().st_size // 1024} KB, {len(sessions)} sessions)")

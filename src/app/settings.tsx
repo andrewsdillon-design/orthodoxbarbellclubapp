@@ -63,6 +63,13 @@ export default function Settings() {
         </Card>
       ) : null}
 
+      {user?.is_staff ? (
+        <Card title="Admin">
+          <T size={14} muted style={{ marginBottom: 8 }}>Club applications, lifts waiting, and every club you oversee.</T>
+          <Button title="Open admin" onPress={() => router.push('/admin')} />
+        </Card>
+      ) : null}
+
       <Card title="Units">
         <Segmented
           value={units.isPending ? (units.variables as Units) : u}

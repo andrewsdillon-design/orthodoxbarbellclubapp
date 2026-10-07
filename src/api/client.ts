@@ -1,6 +1,9 @@
 // A typed client for the OBC API. It talks through a Transport: real HTTP (fetchTransport) or the
 // in-memory mock (mock.ts), so every screen works the same against either.
 import type {
+  ActionResult,
+  AdminSummary,
+  Announcement,
   BodyFatEntry,
   BodyFatList,
   BodyWeightEntry,
@@ -8,12 +11,17 @@ import type {
   EnrollBody,
   Enrollment,
   ExerciseProgress,
+  ClubApplication,
   History,
+  Invite,
   Leaderboard,
+  LeaderLift,
   LogBody,
   LoginResult,
   LogResult,
+  ManageView,
   MaxResult,
+  MemberAction,
   Ok,
   ProgramList,
   Progress,
@@ -181,6 +189,30 @@ export function createClient({ transport, getToken, onUnauthorized }: ClientOpti
     // Clubs
     club: (slug: string) => request<Club>('GET', `/clubs/${q(slug)}`),
     leaderboard: (slug: string) => request<Leaderboard>('GET', `/clubs/${q(slug)}/leaderboard`),
+
+    // Club leaders (founder, leaders, and admins who oversee the club)
+    manage: (slug: string) => request<ManageView>('GET', `/clubs/${q(slug)}/manage`),
+    memberAction: (slug: string, membershipId: number, action: MemberAction) =>
+      request<ActionResult>('POST', `/clubs/${q(slug)}/members/${membershipId}`, { action }),
+    invites: (slug: string) => request<{ invites: Invite[] }>('GET', `/clubs/${q(slug)}/invites`),
+    createInvite: (slug: string, opts: { days?: number; uses?: number } = {}) =>
+      request<Invite>('POST', `/clubs/${q(slug)}/invites`, opts),
+    revokeInvite: (slug: string, id: number) => request<Ok>('DELETE', `/clubs/${q(slug)}/invites/${id}`),
+    postAnnouncement: (slug: string, body: string) =>
+      request<Announcement>('POST', `/clubs/${q(slug)}/announcements`, { body }),
+    deleteAnnouncement: (slug: string, id: number) =>
+      request<Ok>('DELETE', `/clubs/${q(slug)}/announcements/${id}`),
+    clubLifts: (slug: string, status: 'pending' | 'reviewed' = 'pending') =>
+      request<{ lifts: LeaderLift[] }>('GET', `/clubs/${q(slug)}/lifts?status=${status}`),
+    reviewLift: (id: number, action: 'verify' | 'reject', note = '') =>
+      request<ActionResult & { lift: LeaderLift }>('POST', `/lifts/${id}/review`, { action, note }),
+
+    // Site and regional admins
+    adminSummary: () => request<AdminSummary>('GET', '/admin/summary'),
+    adminApplications: () => request<{ applications: ClubApplication[] }>('GET', '/admin/applications'),
+    decideApplication: (id: number, decision: { action: 'approve'; slug?: string; note?: string } | { action: 'reject'; note: string }) =>
+      request<ActionResult & { club?: { slug: string; url: string } }>('POST', `/admin/applications/${id}`, decision),
+    adminLifts: () => request<{ lifts: LeaderLift[] }>('GET', '/admin/lifts'),
   };
 }
 

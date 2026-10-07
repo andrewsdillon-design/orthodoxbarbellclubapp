@@ -5,7 +5,8 @@ import { Button, Card, Chip, Display, ErrorBox, GoldRule, Loading, Row, Screen, 
 import { LINKS } from '../../config';
 import { fmtDate } from '../../lib/dates';
 import { classLabel, fmtNum, fmtWeight } from '../../lib/units';
-import { useClub, useLeaderboard, useMe, useUnits } from '../../state/queries';
+import { LeadPanel } from '../../components/LeadPanel';
+import { useClub, useLeaderboard, useManage, useMe, useUnits } from '../../state/queries';
 import { useTheme } from '../../theme';
 
 const BOARDS: { value: BoardKind; label: string }[] = [
@@ -23,7 +24,10 @@ export default function ClubTab() {
   const club = useClub(selected);
   const board = useLeaderboard(selected);
   const units = useUnits();
-  const [view, setView] = useState<'news' | 'members' | 'board'>('news');
+  const [view, setView] = useState<'news' | 'members' | 'board' | 'lead'>('news');
+  const canLead = !!(club.data?.can_lead ?? clubs.find((c) => c.slug === selected)?.can_lead);
+  const manage = useManage(selected, canLead);
+  const waiting = (manage.data?.pending_lifts ?? 0) + (manage.data?.requests.length ?? 0);
 
   if (me.isPending) return <Loading />;
   if (!clubs.length)
@@ -61,13 +65,15 @@ export default function ClubTab() {
         value={view}
         onChange={setView}
         options={[
-          { value: 'news', label: 'Announcements' },
+          { value: 'news', label: 'News' },
           { value: 'members', label: 'Members' },
-          { value: 'board', label: 'Leaderboard' },
+          { value: 'board', label: 'Board' },
+          ...(canLead ? [{ value: 'lead' as const, label: waiting ? `Lead (${waiting})` : 'Lead' }] : []),
         ]}
       />
       {view === 'news' && club.data ? <Announcements club={club.data} /> : null}
       {view === 'members' && club.data ? <Members club={club.data} /> : null}
+      {view === 'lead' && canLead && selected ? <LeadPanel slug={selected} units={units} /> : null}
       {view === 'board' ? (
         board.isPending ? <Loading /> : board.isError ? <ErrorBox error={board.error} onRetry={board.refetch} /> : <Board board={board.data} units={units} />
       ) : null}

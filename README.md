@@ -22,6 +22,8 @@ built for both stores in Expo's cloud (EAS), so you never need a Mac or Xcode. T
 | **Progress** | Training maxes, estimated-1RM chart per lift, best e1RMs, rep maxes. **History** is the workout log, newest first. |
 | **Body** | Body weight with a chart (one per day), and monthly body fat with method and lean mass. |
 | **Club** | Your clubs, announcements, members, and the club leaderboard (total, squat, bench, deadlift by DOTS). |
+| **Lead** (founders, leaders, admins) | A fourth view on the Club tab: verify or reject lifts with the video, approve or deny join requests, post and delete announcements, make and share invite links, promote, demote and remove members. Only actions the server allows are shown. |
+| **Admin** (site and regional admins) | Settings → Open admin: counts, club applications with Approve (optional new web name) and Reject (with a note), lifts waiting across your clubs, and every club you oversee (tap one for its Lead view). |
 | **Settings** (gear) | Units (lb/kg, saved to your account), appearance (parchment, night, automatic), offline saves waiting to sync, your leaderboard submissions, help links, sign out, and **delete account** (Apple requires it). |
 
 Sign-up stays on the website (waiver, age check and parental consent for minors); the app opens it in the browser.

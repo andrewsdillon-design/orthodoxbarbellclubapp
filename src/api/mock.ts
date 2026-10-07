@@ -5,7 +5,12 @@ import { e1rm, fmtWeight, INCREMENT, kgToLb, leanMass, roundTo } from '../lib/un
 import { isoDate } from '../lib/dates';
 import type { Transport, TransportRequest, TransportResponse } from './client';
 import type {
+  AdminSummary,
   BodyFatEntry,
+  ClubApplication,
+  LeaderLift,
+  ManageView,
+  MemberAction,
   BodyWeightEntry,
   Club,
   EnrollBody,
@@ -39,6 +44,11 @@ export interface Fixtures {
   maxes: { results: MaxResult[] };
   clubs: Record<string, Club>;
   leaderboards: Record<string, Leaderboard>;
+  manage: Record<string, ManageView>;
+  club_lifts: Record<string, { pending: LeaderLift[]; reviewed: LeaderLift[] }>;
+  admin_summary: AdminSummary;
+  admin_applications: { applications: ClubApplication[] };
+  admin_lifts: { lifts: LeaderLift[] };
 }
 
 export const MOCK_TOKEN = 'mock-token';
@@ -325,7 +335,7 @@ function submitMax(state: MockState, b: SubmitMaxBody): MaxResult {
 
 type Handler = (state: MockState, m: RegExpMatchArray, req: TransportRequest, query: URLSearchParams) => unknown;
 
-const routes: [string, RegExp, Handler][] = [
+const routeTable: [string, RegExp, Handler][] = [
   ['POST', /^\/auth\/logout$/, (s) => ((s.token = null), { ok: true })],
   ['GET', /^\/me$/, (s) => s.me],
   ['PATCH', /^\/me$/, (s, _m, { body }) => {
@@ -415,7 +425,193 @@ const routes: [string, RegExp, Handler][] = [
   }],
 ];
 
-const CREATED = new Set(['POST /enrollment', 'POST /bodyweight', 'POST /bodyfat', 'POST /maxes']);
+
+// ----- Club leaders and admins: the same rules as obc/leadership.py ---------------------------------
+
+const SITE = 'https://orthodoxbarbellclub.com';
+const nowIso = () => new Date().toISOString();
+
+function canLead(s: MockState, slug: string): boolean {
+  return !!s.me.is_staff || !!s.me.clubs.find((c) => c.slug === slug)?.can_lead;
+}
+
+function ledClub(s: MockState, slug: string): ManageView {
+  const view = s.manage[slug];
+  if (!view || !s.clubs[slug]) throw new Problem(404, 'No such club.');
+  if (!canLead(s, slug)) throw new Problem(403, "Only the club's founder, leaders and admins can do that.");
+  return view;
+}
+
+function staff(s: MockState) {
+  if (!s.me.is_staff) throw new Problem(403, 'Only site and regional admins can do that.');
+}
+
+/** Keep the club page's member list in step with the leader view. */
+function syncMembers(s: MockState, slug: string) {
+  s.clubs[slug].members = s.manage[slug].members.map(({ name, role }) => ({ name, role }));
+}
+
+function memberAction(s: MockState, slug: string, id: number, action: MemberAction): { ok: true; message: string } {
+  const view = ledClub(s, slug);
+  if (!['approve', 'deny', 'make_leader', 'make_member', 'remove'].includes(action))
+    throw new Problem(400, 'Action is approve, deny, make_leader, make_member or remove.');
+  const request = view.requests.find((r) => r.id === id);
+  const member = view.members.find((m) => m.id === id);
+  if (!request && !member) throw new Problem(404, 'No such member.');
+  if (member?.role === 'founder' && !s.me.is_staff) throw new Problem(403, "You can't do that in this club.");
+  let message = '';
+  if (request && action === 'approve') {
+    view.requests = view.requests.filter((r) => r.id !== id);
+    view.members.push({ id, name: request.name, role: 'member', is_me: false, program: null });
+    message = `${request.name} is in.`;
+  } else if (request && action === 'deny') {
+    view.requests = view.requests.filter((r) => r.id !== id);
+    message = `${request.name}'s request was turned down.`;
+  } else if (member && action === 'make_leader' && member.role === 'member') {
+    member.role = 'leader';
+    message = `${member.name} is now a club leader.`;
+  } else if (member && action === 'make_member' && member.role === 'leader') {
+    member.role = 'member';
+    message = `${member.name} is a member again.`;
+  } else if (member && action === 'remove' && !member.is_me && member.role !== 'founder') {
+    view.members = view.members.filter((m) => m.id !== id);
+    message = `${member.name} was removed from the club.`;
+  } else {
+    throw new Problem(400, "That can't be done to this member.");
+  }
+  syncMembers(s, slug);
+  return { ok: true, message };
+}
+
+function createInvite(s: MockState, slug: string, b: { days?: number | null; uses?: number | null }) {
+  const view = ledClub(s, slug);
+  const problems: string[] = [];
+  const days = b?.days ?? null;
+  const uses = b?.uses ?? null;
+  if (days !== null && (!Number.isInteger(days) || days < 0 || days > 365)) problems.push('Days is out of range.');
+  if (uses !== null && (!Number.isInteger(uses) || uses < 0 || uses > 1000)) problems.push('Uses is out of range.');
+  if (problems.length) throw new Problem(400, problems[0], problems);
+  const code = Math.random().toString(36).slice(2, 14);
+  const invite = {
+    id: s.nextId++,
+    code,
+    url: `${SITE}/me/invite/${code}`,
+    created_at: nowIso(),
+    created_by: s.me.name,
+    expires_at: days ? new Date(Date.now() + days * 86400000).toISOString() : null,
+    max_uses: uses || null,
+    uses: 0,
+    usable: true,
+  };
+  view.invites.unshift(invite);
+  return invite;
+}
+
+function findLift(s: MockState, id: number): LeaderLift | undefined {
+  for (const c of Object.values(s.club_lifts)) {
+    const hit = c.pending.find((l) => l.id === id) ?? c.reviewed.find((l) => l.id === id);
+    if (hit) return hit;
+  }
+  return s.admin_lifts.lifts.find((l) => l.id === id);
+}
+
+function reviewLift(s: MockState, id: number, b: { action?: string; note?: string }) {
+  const lift = findLift(s, id);
+  if (!lift) throw new Problem(404, 'No such lift.');
+  if (!lift.can_review) throw new Problem(403, "You can't do that in this club.");
+  const action = b?.action;
+  const note = String(b?.note ?? '').trim();
+  if (action !== 'verify' && action !== 'reject') throw new Problem(400, 'Choose verify or reject.');
+  if (action === 'reject' && !note) throw new Problem(400, 'Say why it was rejected so the lifter can fix it.');
+  const wasPending = lift.status === 'pending';
+  const done: LeaderLift = { ...lift, status: action === 'verify' ? 'verified' : 'rejected', review_note: note, reviewer: s.me.name };
+  for (const [slug, c] of Object.entries(s.club_lifts)) {
+    if (c.pending.some((l) => l.id === id) || c.reviewed.some((l) => l.id === id)) {
+      c.pending = c.pending.filter((l) => l.id !== id);
+      c.reviewed = [done, ...c.reviewed.filter((l) => l.id !== id)];
+      if (wasPending && s.manage[slug]) s.manage[slug].pending_lifts = Math.max(0, s.manage[slug].pending_lifts - 1);
+    }
+  }
+  if (s.admin_lifts.lifts.some((l) => l.id === id)) {
+    s.admin_lifts.lifts = s.admin_lifts.lifts.filter((l) => l.id !== id);
+  }
+  if (wasPending) s.admin_summary.pending_lifts = Math.max(0, s.admin_summary.pending_lifts - 1);
+  const owner = s.maxes.results.find((r) => r.id === id);
+  if (owner) owner.status = done.status;
+  return { ok: true, message: action === 'verify' ? `${lift.lifter}'s ${lift.lift_name} is verified.` : 'Rejected. The lifter will see your note.', lift: done };
+}
+
+function decideApplication(s: MockState, id: number, b: { action?: string; slug?: string; note?: string }) {
+  staff(s);
+  const app = s.admin_applications.applications.find((a) => a.id === id);
+  if (!app) throw new Problem(404, 'No such application.');
+  const note = String(b?.note ?? '').trim();
+  const remove = () => {
+    s.admin_applications.applications = s.admin_applications.applications.filter((a) => a.id !== id);
+    s.admin_summary.pending_applications = Math.max(0, s.admin_summary.pending_applications - 1);
+  };
+  if (b?.action === 'approve') {
+    const slug = String(b.slug || app.slug).trim().toLowerCase();
+    if (!/^[a-z0-9][a-z0-9-]{1,38}$/.test(slug)) throw new Problem(400, 'Web names are 2-40 letters, numbers and dashes.');
+    if (s.clubs[slug] || s.admin_summary.clubs.some((c) => c.slug === slug))
+      throw new Problem(400, 'A club already uses that web name. Enter a different one.');
+    remove();
+    s.admin_summary.clubs.push({ slug, name: app.club_name, city: app.city, state: app.state, kind: 'club', active: true, members: 1 });
+    return { ok: true, message: `${app.club_name} is live.`, club: { slug, url: `${SITE}/c/${slug}/` } };
+  }
+  if (b?.action === 'reject') {
+    if (!note) throw new Problem(400, 'Add a note saying why, so the founder knows what to change.');
+    remove();
+    return { ok: true, message: 'Application turned down.' };
+  }
+  throw new Problem(400, 'Action is approve or reject.');
+}
+
+const leaderRoutes: [string, RegExp, Handler][] = [
+  ['GET', /^\/clubs\/([^/]+)\/manage$/, (s, m) => ledClub(s, decodeURIComponent(m[1]))],
+  ['POST', /^\/clubs\/([^/]+)\/members\/(\d+)$/, (s, m, { body }) =>
+    memberAction(s, decodeURIComponent(m[1]), +m[2], (body as { action: MemberAction })?.action)],
+  ['GET', /^\/clubs\/([^/]+)\/invites$/, (s, m) => ({ invites: ledClub(s, decodeURIComponent(m[1])).invites.filter((i) => i.usable) })],
+  ['POST', /^\/clubs\/([^/]+)\/invites$/, (s, m, { body }) => createInvite(s, decodeURIComponent(m[1]), body as object)],
+  ['DELETE', /^\/clubs\/([^/]+)\/invites\/(\d+)$/, (s, m) => {
+    const view = ledClub(s, decodeURIComponent(m[1]));
+    if (!view.invites.some((i) => i.id === +m[2])) throw new Problem(404, 'No such invite.');
+    view.invites = view.invites.filter((i) => i.id !== +m[2]);
+    return { ok: true };
+  }],
+  ['POST', /^\/clubs\/([^/]+)\/announcements$/, (s, m, { body }) => {
+    const slug = decodeURIComponent(m[1]);
+    ledClub(s, slug);
+    const text = String((body as { body?: string })?.body ?? '').trim();
+    if (!text) throw new Problem(400, 'Write the announcement first.');
+    const a = { id: s.nextId++, body: text, author: s.me.name, created_at: nowIso() };
+    s.clubs[slug].announcements.unshift(a);
+    return a;
+  }],
+  ['DELETE', /^\/clubs\/([^/]+)\/announcements\/(\d+)$/, (s, m) => {
+    const slug = decodeURIComponent(m[1]);
+    ledClub(s, slug);
+    const before = s.clubs[slug].announcements.length;
+    s.clubs[slug].announcements = s.clubs[slug].announcements.filter((a) => a.id !== +m[2]);
+    if (s.clubs[slug].announcements.length === before) throw new Problem(404, 'No such announcement.');
+    return { ok: true };
+  }],
+  ['GET', /^\/clubs\/([^/]+)\/lifts$/, (s, m, _r, query) => {
+    const slug = decodeURIComponent(m[1]);
+    ledClub(s, slug);
+    const lifts = s.club_lifts[slug] ?? { pending: [], reviewed: [] };
+    return { lifts: query.get('status') === 'reviewed' ? lifts.reviewed : lifts.pending };
+  }],
+  ['POST', /^\/lifts\/(\d+)\/review$/, (s, m, { body }) => reviewLift(s, +m[1], body as object)],
+  ['GET', /^\/admin\/summary$/, (s) => (staff(s), s.admin_summary)],
+  ['GET', /^\/admin\/applications$/, (s) => (staff(s), s.admin_applications)],
+  ['POST', /^\/admin\/applications\/(\d+)$/, (s, m, { body }) => decideApplication(s, +m[1], body as object)],
+  ['GET', /^\/admin\/lifts$/, (s) => (staff(s), s.admin_lifts)],
+];
+
+routeTable.push(...leaderRoutes);
+
+const CREATED = /^POST \/(enrollment|bodyweight|bodyfat|maxes|clubs\/[^/]+\/(invites|announcements))$/;
 
 export function mockTransport(state: MockState = createMockState(), latencyMs = 250): Transport {
   return async (req): Promise<TransportResponse> => {
@@ -432,11 +628,11 @@ export function mockTransport(state: MockState = createMockState(), latencyMs = 
       if (!req.token || req.token !== MOCK_TOKEN) {
         throw new Problem(401, 'Sign in again.');
       }
-      for (const [method, re, handler] of routes) {
+      for (const [method, re, handler] of routeTable) {
         const m = path.match(re);
         if (m && method === req.method) {
           const data = clone(handler(state, m, req, query) ?? null);
-          return { status: CREATED.has(`${req.method} ${path}`) ? 201 : 200, data };
+          return { status: CREATED.test(`${req.method} ${path}`) ? 201 : 200, data };
         }
       }
       throw new Problem(404, 'Not found.');
