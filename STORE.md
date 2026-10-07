@@ -30,7 +30,22 @@ Everything builds in Expo's cloud (EAS) from Windows. No Mac, no Xcode.
 ### 2. Expo account (free)
 - [ ] Sign up at https://expo.dev/signup.
 
-### 3. Build and submit (`build_ios.bat`)
+### 3. Use your own Apple team, not anyone else's
+If your Apple ID is also on someone else's developer team (for example the team another app ships under),
+EAS can pick the wrong one. To make sure OBC goes to **your** team:
+- [ ] Open https://developer.apple.com/account → **Membership details**. Check it says Active, that the
+      Account Holder is you, and copy the **Team ID** (10 characters).
+- [ ] Open `build_ios.bat` in Notepad and put the Team ID on the `set APPLE_TEAM_ID=` line (and fix
+      `APPLE_ID` if you enrolled with a different Apple ID). EAS then signs in as you and uses that team.
+- [ ] When `eas init` asks which **Expo** account owns the project, pick your personal account, not
+      another organization's.
+- [ ] If an earlier Apple sign-in for someone else's team is cached, EAS shows it ("Logged in as …"). Delete
+      `%USERPROFILE%\.app-store` and run again to sign in fresh.
+
+Other apps under other teams keep working as they are. EAS keeps certificates and profiles per bundle ID and
+per team, so OBC on your team and another app on someone else's team don't interfere.
+
+### 4. Build and submit (`build_ios.bat`)
 - [ ] Double-click `build_ios.bat` in this repo. It installs packages, runs TypeScript, the tests and expo-doctor,
       then signs you in to Expo.
 - [ ] **First run only:** it runs `eas init` and prints a project ID. Paste it into `app.config.ts` on the
@@ -50,11 +65,11 @@ npx eas-cli@latest build -p ios --profile production
 npx eas-cli@latest submit -p ios --latest
 ```
 
-### 4. Try it on your iPhone first (TestFlight)
+### 5. Try it on your iPhone first (TestFlight)
 - [ ] App Store Connect → the app → TestFlight → add yourself as an internal tester; install **TestFlight**
       from the App Store and open the build. Sign in, log a set, change units, check every tab.
 
-### 5. App Store Connect listing
+### 6. App Store Connect listing
 App Store Connect → Apps → Orthodox Barbell Club → the 1.0 version.
 
 | Field | Enter |
@@ -115,7 +130,7 @@ leaders. Don't tick "Made for Kids". Expect 4+ (or 9+/13+ under Apple's newer ti
 
 **Account deletion:** Settings → Delete account (guideline 5.1.1(v)). Sign-up is on the website, which is allowed.
 
-### 6. App Review information
+### 7. App Review information
 - [ ] Sign-in required: **Yes**. User name: `appreview@orthodoxbarbellclub.com` · Password: `________`
       (the demo account from "Before Monday").
 - [ ] Contact: your name, phone and email.
@@ -139,7 +154,7 @@ leaders. Don't tick "Made for Kids". Expect 4+ (or 9+/13+ under Apple's newer ti
 > submissions. Leaderboard submissions are links to videos the user hosts elsewhere (e.g. YouTube); the app
 > doesn't upload video.
 
-### 7. Submit
+### 8. Submit
 - [ ] Version 1.0 → Build → pick the build from TestFlight → **Add for Review** → **Submit to App Review**.
 - [ ] Release: "Manually release this version" lets you choose the day it goes live.
 - [ ] Review usually takes one to two days. If rejected, the message says why; fix, run `build_ios.bat`

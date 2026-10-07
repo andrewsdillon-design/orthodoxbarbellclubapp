@@ -6,6 +6,14 @@ rem make the signing certificate and provisioning profile for you (say yes to ea
 setlocal
 cd /d "%~dp0"
 
+rem Build with YOUR Apple developer team, never someone else's (e.g. a team you're on for another app).
+rem APPLE_ID is the Apple ID you enrolled with. APPLE_TEAM_ID is the 10-character Team ID from
+rem https://developer.apple.com/account -> Membership details. Leave it blank and EAS asks you to pick.
+set APPLE_ID=dillonleon@me.com
+set APPLE_TEAM_ID=
+set EXPO_APPLE_ID=%APPLE_ID%
+if not "%APPLE_TEAM_ID%"=="" set EXPO_APPLE_TEAM_ID=%APPLE_TEAM_ID%
+
 where node >nul 2>nul || (echo Install Node.js LTS from https://nodejs.org first. & exit /b 1)
 
 echo.
