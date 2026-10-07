@@ -9,6 +9,7 @@ cd /d "%~dp0"
 rem Build with YOUR Apple developer team, never someone else's (e.g. a team you're on for another app).
 rem APPLE_ID is the Apple ID you enrolled with. APPLE_TEAM_ID is the 10-character Team ID from
 rem https://developer.apple.com/account -> Membership details. Leave it blank and EAS asks you to pick.
+rem Your team is "Dillon REA Andrews (Individual)" - if EAS asks, pick that one, not Ron Seitz's.
 set APPLE_ID=dillonleon@me.com
 set APPLE_TEAM_ID=
 set EXPO_APPLE_ID=%APPLE_ID%

@@ -35,6 +35,8 @@ If your Apple ID is also on someone else's developer team (for example the team 
 EAS can pick the wrong one. To make sure OBC goes to **your** team:
 - [ ] Open https://developer.apple.com/account → **Membership details**. Check it says Active, that the
       Account Holder is you, and copy the **Team ID** (10 characters).
+- [ ] Your team is **Dillon REA Andrews (Individual)**. Whenever EAS lists Apple teams, pick that one, never
+      Ron Seitz's team.
 - [ ] Open `build_ios.bat` in Notepad and put the Team ID on the `set APPLE_TEAM_ID=` line (and fix
       `APPLE_ID` if you enrolled with a different Apple ID). EAS then signs in as you and uses that team.
 - [ ] When `eas init` asks which **Expo** account owns the project, pick your personal account, not
@@ -82,7 +84,7 @@ App Store Connect → Apps → Orthodox Barbell Club → the 1.0 version.
 | Support URL | https://orthodoxbarbellclub.com/support |
 | Marketing URL | https://orthodoxbarbellclub.com |
 | Privacy Policy URL | https://orthodoxbarbellclub.com/privacy |
-| Copyright | 2026 Orthodox Barbell Club |
+| Copyright | 2026 Dillon REA Andrews |
 | Price | Free |
 
 **Description:**
