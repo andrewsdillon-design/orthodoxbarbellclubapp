@@ -47,3 +47,7 @@ google-play-service-account.json
 
 # Python
 __pycache__/
+
+# walkthrough video output
+tools/walkthrough/shots/
+tools/walkthrough/out/

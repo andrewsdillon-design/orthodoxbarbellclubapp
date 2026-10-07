@@ -108,7 +108,8 @@ src/api/            types.ts (the API contract), client.ts (typed client), mock.
 src/lib/            units, dates, the offline queue, the set-logging form, storage
 src/state/          auth, React Query setup and cache, data hooks, sync
 src/components/     UI kit, session logger, rest timer, chart, roundel and icons
-tools/              Python: ship.py (build and submit), make_brand.py, screenshots.py, record_fixtures.py
+tools/              Python: ship.py (build and submit), make_brand.py, screenshots.py, record_fixtures.py,
+                    walkthrough/ (the app walkthrough video, rendered in Blender on the graphics card)
 store/              store graphics and screenshots
 ```
 
