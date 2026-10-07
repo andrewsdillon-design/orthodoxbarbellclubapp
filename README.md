@@ -71,6 +71,7 @@ Everything builds in Expo's cloud. See **[STORE.md](STORE.md)** for the step-by-
 
 | File | What it's for |
 |---|---|
+| `SHIP_TO_TESTFLIGHT.bat` | One double-click from a bare Windows PC: installs Git, Node and Python if missing, downloads or updates this repo in your user folder, then runs `tools/ship.py ios` to build and upload to TestFlight |
 | `build_ios.bat` | Runs `tools/ship.py`: pull, install, checks, then build the iPhone app in the cloud and submit it to App Store Connect |
 | `build_android.bat` | The same for Google Play (`tools/ship.py android`) |
 | `app.config.ts` | Name, bundle ID `com.orthodoxbarbellclub.app`, icons, splash, privacy and support URLs |
