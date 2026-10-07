@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { errorMessage } from '../api';
 import { Roundel } from '../components/brand';
@@ -10,6 +11,7 @@ import { useTheme } from '../theme';
 export default function Login() {
   const { c } = useTheme();
   const { signIn } = useAuth();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -30,7 +32,10 @@ export default function Login() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.header }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={s.wrap} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[s.wrap, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Roundel size={190} />
         <Display size={26} color={c.headerText} style={s.title}>Orthodox Barbell Club</Display>
         <T style={{ color: '#E8DCC4', textAlign: 'center', marginBottom: 18 }}>
@@ -74,7 +79,7 @@ export default function Login() {
 }
 
 const s = StyleSheet.create({
-  wrap: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 20, paddingTop: 60 },
+  wrap: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
   title: { marginTop: 14, textAlign: 'center' },
   panel: { width: '100%', maxWidth: 440, borderWidth: 1.5, borderRadius: 8, padding: 16 },
 });

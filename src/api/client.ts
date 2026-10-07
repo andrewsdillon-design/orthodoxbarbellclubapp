@@ -99,7 +99,13 @@ export function fetchTransport(baseUrl: string, timeoutMs = 20000): Transport {
       try {
         data = JSON.parse(text);
       } catch {
-        data = { error: `The server sent something unexpected (HTTP ${res.status}).` };
+        // A web page instead of JSON: the site is up but the app API isn't (not deployed, or down).
+        data = {
+          error:
+            res.status === 404
+              ? "The OBC website isn't ready for the app yet. Try again later, or sign in on orthodoxbarbellclub.com."
+              : `The OBC server had a problem (HTTP ${res.status}). Try again in a few minutes.`,
+        };
       }
     }
     return { status: res.status, data };

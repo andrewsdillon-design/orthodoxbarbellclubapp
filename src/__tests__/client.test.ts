@@ -226,3 +226,19 @@ describe('mock mode', () => {
     expect(token).toBe(MOCK_TOKEN);
   });
 });
+
+describe('when the site has no app API yet', () => {
+  const realFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  it('explains an HTML 404 instead of showing a raw error', async () => {
+    globalThis.fetch = jest.fn().mockResolvedValue({ status: 404, text: async () => '<!doctype html><title>404</title>' }) as unknown as typeof fetch;
+    const api = createClient({ transport: fetchTransport('https://x.test/api/v1'), getToken: () => null });
+    const err = await api.login('a@b.com', 'pw', 'iPhone').catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(404);
+    expect(err.message).toMatch(/isn't ready for the app yet/);
+  });
+});
