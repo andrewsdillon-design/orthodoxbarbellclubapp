@@ -47,25 +47,21 @@ EAS can pick the wrong one. To make sure OBC goes to **your** team:
 Other apps under other teams keep working as they are. EAS keeps certificates and profiles per bundle ID and
 per team, so OBC on your team and another app on someone else's team don't interfere.
 
-### 4. Build and submit (`build_ios.bat`)
-- [ ] Double-click `build_ios.bat` in this repo. It installs packages, runs TypeScript, the tests and expo-doctor,
-      then signs you in to Expo.
-- [ ] **First run only:** it runs `eas init` and prints a project ID. Paste it into `app.config.ts` on the
-      `EAS_PROJECT_ID` line (between the quotes), save, commit, and run `build_ios.bat` again.
-- [ ] When asked, sign in with your **Apple ID** and let EAS create the distribution certificate and
-      provisioning profile (answer **yes** each time). It also registers the bundle ID
-      `com.orthodoxbarbellclub.app` and creates the app in App Store Connect if it isn't there.
-- [ ] The build runs in the cloud (about 15 to 25 minutes; the link it prints shows progress), then
-      `eas submit` uploads it. 10 to 30 minutes later it appears in App Store Connect under **TestFlight**.
+### 4. Build and submit (`build_ios.bat`, which runs `tools/ship.py`)
+- [ ] Install [Python](https://www.python.org), [Node.js LTS](https://nodejs.org) and [Git](https://git-scm.com)
+      if they aren't on the PC.
+- [ ] Double-click `build_ios.bat`. It pulls the latest code, installs packages, runs TypeScript and the
+      tests, checks you're signed in to Expo as **dandrews91**, then builds in the cloud locked to your Apple
+      team (GA9A5J9A44) and submits to App Store Connect.
+- [ ] **First build only:** sign in to Apple as **andrews.dillon@gmail.com**, type the 6-digit code from your
+      iPhone, pick **Dillon REA Andrews (Individual)** if it lists teams, and answer **yes** to creating the
+      distribution certificate, provisioning profile and bundle ID `com.orthodoxbarbellclub.app`. EAS keeps
+      them, so later builds need no input.
+- [ ] The build runs in the cloud (about 15 to 25 minutes; the link it prints shows progress), then uploads.
+      10 to 30 minutes later it appears in App Store Connect under **TestFlight**.
 
-The same steps by hand, in this repo's folder:
-```
-npm install
-npx eas-cli@latest login
-npx eas-cli@latest init                      (first time; paste the ID into app.config.ts)
-npx eas-cli@latest build -p ios --profile production
-npx eas-cli@latest submit -p ios --latest
-```
+Options: `build_ios.bat --no-submit` (build only), `--dry-run` (everything but the cloud build).
+The Expo project (`@dandrews91/orthodox-barbell-club`) is already linked in `app.config.ts`.
 
 ### 5. Try it on your iPhone first (TestFlight)
 - [ ] App Store Connect → the app → TestFlight → add yourself as an internal tester; install **TestFlight**

@@ -71,8 +71,8 @@ Everything builds in Expo's cloud. See **[STORE.md](STORE.md)** for the step-by-
 
 | File | What it's for |
 |---|---|
-| `build_ios.bat` | Checks, then builds the iPhone app in the cloud and submits it to App Store Connect |
-| `build_android.bat` | The same for Google Play |
+| `build_ios.bat` | Runs `tools/ship.py`: pull, install, checks, then build the iPhone app in the cloud and submit it to App Store Connect |
+| `build_android.bat` | The same for Google Play (`tools/ship.py android`) |
 | `app.config.ts` | Name, bundle ID `com.orthodoxbarbellclub.app`, icons, splash, privacy and support URLs |
 | `eas.json` | Build profiles: `development` (mock data), `preview` (live, install directly), `production` (store) |
 
@@ -105,7 +105,7 @@ src/api/            types.ts (the API contract), client.ts (typed client), mock.
 src/lib/            units, dates, the offline queue, the set-logging form, storage
 src/state/          auth, React Query setup and cache, data hooks, sync
 src/components/     UI kit, session logger, rest timer, chart, roundel and icons
-tools/              Python: make_brand.py, screenshots.py, record_fixtures.py
+tools/              Python: ship.py (build and submit), make_brand.py, screenshots.py, record_fixtures.py
 store/              store graphics and screenshots
 ```
 
