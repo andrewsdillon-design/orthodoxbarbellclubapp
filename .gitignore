@@ -44,3 +44,6 @@ dist-web/
 # store credentials (never commit)
 google-play-service-account.json
 *.p8
+
+# Python
+__pycache__/
