@@ -168,11 +168,16 @@ def use_gpu(scene, engine: str) -> str:
             break
         except TypeError:
             continue
+    return "EEVEE on the graphics card (named after the first frame renders)"
+
+
+def gpu_used() -> str:
+    """The card EEVEE drew on. Only readable once a render has started Blender's GPU context."""
     try:
         import gpu
-        return f"EEVEE on {gpu.platform.renderer_get()} ({gpu.platform.vendor_get()})"
+        return f"Rendered on {gpu.platform.renderer_get()} ({gpu.platform.vendor_get()})"
     except Exception:
-        return "EEVEE on the graphics card"
+        return "Rendered on the graphics card (Blender didn't say which)"
 
 
 def build(opts: dict) -> None:
@@ -376,6 +381,8 @@ def build(opts: dict) -> None:
         settings.file_format = "PNG"
         scene.render.filepath = str(out.with_name(f"preview-step{opts['preview']:02d}.png"))
         bpy.ops.render.render(write_still=True)
+        if scene.render.engine != "CYCLES":
+            print(gpu_used())
         print(f"Preview written to {scene.render.filepath}")
         return
 
@@ -399,6 +406,8 @@ def build(opts: dict) -> None:
     scene.render.filepath = str(out)
     print(f"Rendering {scene.frame_end} frames ({scene.frame_end / FPS / 60:.1f} min of video) to {out}")
     bpy.ops.render.render(animation=True)
+    if scene.render.engine != "CYCLES":
+        print(gpu_used())
     print(f"Done: {out}")
 
 

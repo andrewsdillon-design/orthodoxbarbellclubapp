@@ -78,8 +78,10 @@ def prefer_fast_gpu(exe: str) -> None:
 
 
 def ensure_capture_tools() -> None:
-    if not (ROOT / "node_modules").exists():
-        print("== Installing the app's packages (first time only)")
+    installed = ROOT / "node_modules" / ".package-lock.json"
+    lock = ROOT / "package-lock.json"
+    if not installed.exists() or (lock.exists() and lock.stat().st_mtime > installed.stat().st_mtime):
+        print("== Installing the app's packages (new or changed since the last install)")
         subprocess.run("npm install", cwd=ROOT, shell=True, check=True)
     if importlib.util.find_spec("playwright") is None:
         print("== Installing Playwright (first time only)")
@@ -113,7 +115,7 @@ def main() -> int:
         return 1
     prefer_fast_gpu(blender)
     print(f"== Rendering in {blender}")
-    cmd = [blender, "-b", "-P", str(HERE / "render_blender.py"), "--", "--shots", str(SHOTS), "--out", str(OUT),
+    cmd = [blender, "-b", "--python-exit-code", "1", "-P", str(HERE / "render_blender.py"), "--", "--shots", str(SHOTS), "--out", str(OUT),
            "--quality", "draft" if args.draft else "final", "--engine", args.engine]
     if args.preview is not None:
         cmd += ["--preview", str(args.preview)]
